@@ -27,36 +27,6 @@ A full-stack Hotel Booking System built with **Node.js**, **Express**, and **Mon
 
 ---
 
-## 📁 Project Structure
-hotelbooking/
-├── controllers/
-│ ├── booking.js
-│ ├── category.js
-│ ├── login.js
-│ └── room.js
-├── routes/
-│ └── v1/
-│ ├── admin/
-│ │ └── admin.js
-│ ├── enduser/
-│ │ └── enduser.js
-├── models/
-│ ├── booking.js
-│ ├── category.js
-│ ├── room.js
-│ └── token.js
-├── config/
-│ ├── config.gmail.env
-│ ├── email.js
-│ └── firebasekey.json
-├── index.js # App entry point
-├── package.json
-└── README.md
-
-
-
----
-
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
