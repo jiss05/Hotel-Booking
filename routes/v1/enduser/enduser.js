@@ -463,10 +463,45 @@ router.post("/bookroom", isUser, async (req, res) => {
   }
 });
 
-// 
+// cancel a booking by user and update available rooms in category
+router.post('/cancel/:bookingid', isUser, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const bookingId = req.params.bookingid;
 
+    const bookingofuser = await bookingmodel.findOne({ user: userId, _id: bookingId });
 
+    if (!bookingofuser || bookingofuser.status === false) {
+      return res.status(400).json({
+        status: false,
+        message: 'Booking not found'
+      });
+    }
 
+    // Mark booking as cancelled
+    bookingofuser.status = false;
+    await bookingofuser.save();
+
+    // Add the booked rooms back to the category's available rooms
+    const category = await categorymodel.findById(bookingofuser.category);
+    if (category) {
+      category.isAvailable += bookingofuser.noofroomsbooked;
+      await category.save();
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'Booking cancelled Successfully and rooms updated'
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      status: false,
+      message: 'Something went wrong'
+    });
+  }
+});
 
 
 

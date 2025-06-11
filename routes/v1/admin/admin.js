@@ -11,6 +11,9 @@ const {Room} = require('../../../models/room')
 const {Category} = require('../../../models/category')
 const pdf = require('pdfmake');
 const excel = require('exceljs');
+
+     // Import booking model here to avoid circular dependency
+        const bookingmodel = require('../../../models/booking');
 // Importing the necessary libraries for PDF generation
 
 const fonts = {
@@ -387,6 +390,99 @@ router.get('/getuser/:type', isAdmin, async (req, res) => {
         res.status(500).json({ status: false, message: 'Something went wrong' });
     }
 }) ; 
+
+
+// get all bookings of all user when selecting a checkin date and admin should get a pdf of all bookings of all users in that checkin date
+router.get('/getallbookings', async (req, res) => {
+    try {
+        const { checkInDate } = req.query;
+        if (!checkInDate) {
+            return res.status(400).json({ status: false, message: 'checkInDate query parameter is required (YYYY-MM-DD)' });
+        }
+
+        // Parse the checkInDate and get bookings for that day
+        const checkIn = new Date(checkInDate);
+        if (isNaN(checkIn.getTime())) {
+            return res.status(400).json({ status: false, message: 'Invalid checkInDate format' });
+        }
+
+        // Normalize to start of the day
+        checkIn.setHours(0, 0, 0, 0);
+        const nextDay = new Date(checkIn);
+        nextDay.setDate(checkIn.getDate() + 1);
+
+   
+
+        // Find all bookings for the given check-in date
+        const bookings = await bookingmodel.find({
+            checkInDate: {
+                $gte: checkIn,
+                $lt: nextDay
+            }
+        }).populate('user').populate('category');
+
+        if (!bookings.length) {
+            return res.status(404).json({ status: false, message: 'No bookings found for this check-in date' });
+        }
+
+        // Prepare PDF content
+        const docDefinition = {
+            content: [
+                { text: `Bookings for Check-In Date: ${checkInDate}`, style: 'header' },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: ['auto', '*', '*', '*', '*', '*', '*'],
+                        body: [
+                            [
+                                'S.No',
+                                'User Name',
+                                'User Email',
+                                'Category',
+                                'Rooms Booked',
+                                'Check-In',
+                                'Check-Out'
+                            ],
+                            ...bookings.map((booking, idx) => [
+                                idx + 1,
+                                booking.user?.name || 'N/A',
+                                booking.user?.email || 'N/A',
+                                booking.category?.name || 'N/A',
+                                booking.noofroomsbooked,
+                                booking.checkInDate.toISOString().slice(0, 10),
+                                booking.checkOutDate.toISOString().slice(0, 10)
+                            ])
+                        ]
+                    }
+                }
+            ],
+            styles: {
+                header: {
+                    fontSize: 18,
+                    bold: true,
+                    margin: [0, 0, 0, 10]
+                }
+            }
+        };
+
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        let chunks = [];
+        pdfDoc.on("data", (chunk) => chunks.push(chunk));
+        pdfDoc.on("end", () => {
+            const result = Buffer.concat(chunks);
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename=bookings_${checkInDate}.pdf`);
+            res.send(result);
+        });
+
+        pdfDoc.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: false, message: 'Something went wrong' });
+    }
+});
+
+
 
 
 module.exports=router;
