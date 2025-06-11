@@ -9,13 +9,29 @@ const {Token} = require('../../../models/token')
 const {isAdmin} = require('../../../controllers/middleware')
 const {Room} = require('../../../models/room')
 const {Category} = require('../../../models/category')
+const pdf = require('pdfmake');
+const excel = require('exceljs');
+// Importing the necessary libraries for PDF generation
+
+const fonts = {
+    Roboto: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
+    }
+};
+
+const printer = new pdf(fonts);
+// Importing the necessary models
+
 
 // secret key for JWT
 const JWT_SECRET = '@this_is_secret_key'
 
 //user registration
 
-router.post('/v1/admin/register',async (req,res) => {
+router.post('/register',async (req,res) => {
     try {
         const {name,password,phoneno,role,email}= req.body;
         if (!email || !password || !phoneno || !role || !name) {
@@ -82,7 +98,7 @@ if (!allowedRoles.includes(role.toLowerCase())) {
     
 });
 //end point in '' 
-router.post('/v1/admin/login',async (req,res) => {
+router.post('/login',async (req,res) => {
     try {
         const {email,password} = req.body;
         if(!email || !password) {
@@ -137,12 +153,12 @@ router.post('/v1/admin/login',async (req,res) => {
         
     }
 });
-router.post('/v1/admin/addcategory', isAdmin, async (req, res) => {
+router.post('/addcategory', isAdmin, async (req, res) => {
      try {
 
      console.log (req.user);
-        const {name} = req.body;
-        if (!name) {
+        const {name,totalRooms,isAvailable,price} = req.body;
+        if (!name, !totalRooms, !isAvailable, !price) {
             return res.status(400).json({ status: false, message: 'All fields are required' });
         }
 
@@ -154,7 +170,10 @@ router.post('/v1/admin/addcategory', isAdmin, async (req, res) => {
 
         // Create new category
         const newCategory = new Category({
-            name: name
+            name: name,
+            totalRooms: totalRooms,
+            isAvailable: isAvailable,
+            price: price
         });
 
         await newCategory.save();
@@ -176,7 +195,7 @@ router.post('/v1/admin/addcategory', isAdmin, async (req, res) => {
 
 // Read all categories
 
-router.get('/v1/admin/getcategories', isAdmin, async (req, res) => {
+router.get('/getcategories',isAdmin, async (req, res) => {
     try {
         console.log(req.user);
         
@@ -192,7 +211,7 @@ router.get('/v1/admin/getcategories', isAdmin, async (req, res) => {
     }
 });
 // Update category
-router.put('/v1/admin/updatecategory/:id', isAdmin, async (req,res) => {
+router.put('/updatecategory/:id', isAdmin, async (req,res) => {
     try{
         const {id} = req.params;
         const {name} = req.body;
@@ -220,7 +239,7 @@ router.put('/v1/admin/updatecategory/:id', isAdmin, async (req,res) => {
 
 });
 //DElete category
-router.delete('/v1/admin/deletecategory/:id', isAdmin, async (req, res) => {
+router.delete('/deletecategory/:id', isAdmin, async (req, res) => {
     try {
         const {id} = req.params;
         //soft delete by updating status
@@ -277,6 +296,97 @@ router.put('/active-user/:id', async (req,res)=>{
         res.status(500).json({ status: false, message: 'Internal server error' });
     }   
 });
+
+router.get('/getuser/:type', isAdmin, async (req, res) => {
+    try {
+
+        const type = req.params.type.toLowerCase();
+
+
+        const allUsers = await login.find({ role: 'user' })// Fetch all users with role 'user'
+
+
+
+        if(!allUsers){
+            return res.status(404).json({ status: false, message: 'No users found' });
+        }
+
+        if( type  == 'pdf') //if type is pdf, generate PDF
+            {
+                const docDefinition = {
+                    content: [
+                        { text: 'User List', style: 'header' },
+                        {
+                            table: {
+                                body: [
+                                    ['Name', 'Email', 'Phone Number'],
+                                    ...allUsers.map(user => [user.name, user.email, user.phoneno.toString()])
+                                ]
+                            }
+                        }
+                    ],
+                    styles: {
+                        header: {
+                            fontSize: 18,
+                            bold: true,
+                            margin: [0, 0, 0, 10]
+                        }
+                    }
+                };
+
+                const pdfDoc = printer.createPdfKitDocument(docDefinition);
+                let chunks = [];
+                                pdfDoc.on("data", (chunk) => chunks.push(chunk));
+                                pdfDoc.on("end", () => {
+                                const result = Buffer.concat(chunks);
+                                res.setHeader("Content-Type", "application/pdf");
+                                res.setHeader("Content-Disposition", "attachment; filename=users.pdf");
+                                res.send(result);
+                                });
+
+    pdfDoc.end();
+
+
+             
+
+
+        } 
+
+        else ( type == 'excel') //if type is excel, generate Excel file
+        {
+            const workbook = new excel.Workbook();
+            const worksheet = workbook.addWorksheet('Users');
+
+            // Add column headers
+            worksheet.columns = [
+                { header: 'Name', key: 'name', width: 30 },
+                { header: 'Email', key: 'email', width: 30 },
+                { header: 'Phone Number', key: 'phoneno', width: 15 }
+            ];
+
+            // Add rows
+            allUsers.forEach(user => {
+                worksheet.addRow({
+                    name: user.name,
+                    email: user.email,
+                    phoneno: user.phoneno.toString()
+                });
+            });
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=users.xlsx');
+            await workbook.xlsx.write(res);
+            res.end();
+        } 
+
+
+    }
+
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ status: false, message: 'Something went wrong' });
+    }
+}) ; 
 
 
 module.exports=router;

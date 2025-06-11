@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,7 @@
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "express-useragent": "^1.0.15",
     "googleapis": "^150.0.1",
@@ -22,6 +24,7 @@
     "mongoose": "^8.15.1",
     "nodemailer": "^7.0.3",
     "path": "^0.12.7",
+    "pdfmake": "^0.2.20",
     "useragent": "^2.3.0"
   }
 }

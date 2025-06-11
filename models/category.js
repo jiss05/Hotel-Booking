@@ -7,8 +7,20 @@ const categorySchema = new mongoose.Schema(
  status: {
    type: Boolean,
    default: true
- }   
+ },
+ totalRooms: {
+   type: Number,
+   required: true
+ },
+ isAvailable: {
+   type: Number,
+   default: true
+ }, 
+ price: {
+   type: Number,
+   required: true
+ },  
 });
 
-const Category =mongoose.model('Category', categorySchema);
-module.exports = { Category };
+const categorymodel =mongoose.model('Category', categorySchema);
+module.exports = { categorymodel };

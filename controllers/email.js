@@ -18,7 +18,7 @@ oauth2Client.setCredentials({
     refresh_token: env.refresh_token //Refresh Token
 });
 const accessToken = oauth2Client.getAccessToken();
-async function sendTextEmail(to, subject, body)
+async function sendTextEmail(to, subject, body,attachments)
 {
     const transporter = nodemailer.createTransport({
         service : "gmail",
@@ -39,7 +39,8 @@ async function sendTextEmail(to, subject, body)
         from : env.emailId, // Your Gmail address
         to: to, // Recipient's email address    
         subject: subject, // Email subject
-        text: body // Email body
+        html: body ,// Email body
+        attachments: attachments // Attachments if any
     };
     transporter.sendMail(mailOptions, function (error,info){
         if (error){

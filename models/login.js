@@ -30,7 +30,7 @@ isverified : {
                                           
 
  });
-const login = mongoose.model('login',login_schema)
+const login = mongoose.model('login',login_schema);
 
 module.exports = {login};
 
